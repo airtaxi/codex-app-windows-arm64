@@ -22,6 +22,7 @@ Describe "Build-CodexWoA CLI contract" {
             "PackageVersionOverride",
             "PublisherSubject",
             "CodexReleaseTag",
+            "NodeGypLtoMode",
             "InstallVsDependencies",
             "SkipVsDependencyCheck",
             "KeepWorkDir",
@@ -33,6 +34,12 @@ Describe "Build-CodexWoA CLI contract" {
         $sourceMode = $script:Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq "SourceMode" }
         $validateSet = $sourceMode.Attributes | Where-Object { $_.TypeName.Name -eq "ValidateSet" }
         @($validateSet.PositionalArguments.Value) | Should -Be @("Prompt", "StoreMsix", "Installed", "StoreLatest", "Msix")
+    }
+
+    It "keeps all supported node-gyp LTO modes" {
+        $nodeGypLtoMode = $script:Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq "NodeGypLtoMode" }
+        $validateSet = $nodeGypLtoMode.Attributes | Where-Object { $_.TypeName.Name -eq "ValidateSet" }
+        @($validateSet.PositionalArguments.Value) | Should -Be @("Auto", "Disabled", "Inherit")
     }
 
     It "keeps the expected report sections" {

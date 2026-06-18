@@ -10,6 +10,8 @@ function Invoke-CodexWoABuild {
         [string]$PackageVersionOverride = "",
         [string]$PublisherSubject = "CN=Codex WoA Local",
         [string]$CodexReleaseTag = "latest",
+        [ValidateSet("Auto", "Disabled", "Inherit")]
+        [string]$NodeGypLtoMode = "Auto",
         [switch]$InstallVsDependencies,
         [switch]$SkipVsDependencyCheck,
         [switch]$KeepWorkDir,
@@ -26,6 +28,7 @@ function Invoke-CodexWoABuild {
         PackageVersionOverride = $PackageVersionOverride
         PublisherSubject = $PublisherSubject
         CodexReleaseTag = $CodexReleaseTag
+        NodeGypLtoMode = $NodeGypLtoMode
         InstallVsDependencies = [bool]$InstallVsDependencies
         SkipVsDependencyCheck = [bool]$SkipVsDependencyCheck
         KeepWorkDir = [bool]$KeepWorkDir

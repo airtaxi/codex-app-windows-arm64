@@ -71,12 +71,14 @@ function Rebuild-PluginClassicLevelArm64NativeModules {
     foreach ($classicLevelDir in $classicLevelDirs) {
         Push-Location $classicLevelDir.FullName
         try {
-            Invoke-Checked "pnpm" @(
-                "dlx",
-                "node-gyp@$($script:Context.Tools.NodeGyp)",
-                "rebuild",
-                "--arch=arm64"
-            )
+            Invoke-WithNodeGypLtoEnvironment {
+                Invoke-Checked "pnpm" @(
+                    "dlx",
+                    "node-gyp@$($script:Context.Tools.NodeGyp)",
+                    "rebuild",
+                    "--arch=arm64"
+                )
+            }
         }
         finally {
             Pop-Location

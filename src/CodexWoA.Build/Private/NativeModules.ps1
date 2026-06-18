@@ -197,6 +197,41 @@ function Invoke-WithTemporaryEnv {
     }
 }
 
+function Get-NodeGypLtoEnvironment {
+    $mode = "Auto"
+    if ($null -ne $script:Context -and
+        $null -ne $script:Context.Options -and
+        $script:Context.Options.ContainsKey("NodeGypLtoMode") -and
+        -not [string]::IsNullOrWhiteSpace($script:Context.Options.NodeGypLtoMode)) {
+        $mode = $script:Context.Options.NodeGypLtoMode
+    }
+
+    if ($mode -eq "Inherit") {
+        return @{}
+    }
+
+    return @{
+        npm_config_enable_lto = "false"
+        npm_config_enable_thin_lto = "false"
+        npm_config_lto_jobs = ""
+        pnpm_config_enable_lto = "false"
+        pnpm_config_enable_thin_lto = "false"
+        pnpm_config_lto_jobs = ""
+    }
+}
+
+function Invoke-WithNodeGypLtoEnvironment {
+    param([scriptblock]$ScriptBlock)
+
+    $environment = Get-NodeGypLtoEnvironment
+    if ($environment.Count -eq 0) {
+        & $ScriptBlock
+        return
+    }
+
+    Invoke-WithTemporaryEnv $environment $ScriptBlock
+}
+
 function Add-MsvcFrameAddressShim {
     param([string]$Path)
 
@@ -358,14 +393,16 @@ function Invoke-NodeGypArm64ElectronRebuild {
 
     Push-Location $shortPackageDir
     try {
-        Invoke-Checked "pnpm" @(
-            "dlx",
-            "node-gyp@$($script:Context.Tools.NodeGyp)",
-            "rebuild",
-            "--arch=arm64",
-            "--target=$ElectronVersion",
-            "--dist-url=https://electronjs.org/headers"
-        )
+        Invoke-WithNodeGypLtoEnvironment {
+            Invoke-Checked "pnpm" @(
+                "dlx",
+                "node-gyp@$($script:Context.Tools.NodeGyp)",
+                "rebuild",
+                "--arch=arm64",
+                "--target=$ElectronVersion",
+                "--dist-url=https://electronjs.org/headers"
+            )
+        }
     }
     finally {
         Pop-Location
@@ -555,12 +592,14 @@ allowBuilds:
             throw "electron-rebuild command was not found: $electronRebuild"
         }
 
-        Invoke-Checked $electronRebuild @(
-            "-v", $ElectronVersion,
-            "--arch", "arm64",
-            "--force",
-            "-w", "better-sqlite3,node-pty"
-        )
+        Invoke-WithNodeGypLtoEnvironment {
+            Invoke-Checked $electronRebuild @(
+                "-v", $ElectronVersion,
+                "--arch", "arm64",
+                "--force",
+                "-w", "better-sqlite3,node-pty"
+            )
+        }
 
         Prune-NodePtyNonArm64Payloads $nodePtyDir
     }

@@ -18,6 +18,9 @@ param(
 
     [string]$CodexReleaseTag = "latest",
 
+    [ValidateSet("Auto", "Disabled", "Inherit")]
+    [string]$NodeGypLtoMode = "Auto",
+
     [switch]$InstallVsDependencies,
 
     [switch]$SkipVsDependencyCheck,

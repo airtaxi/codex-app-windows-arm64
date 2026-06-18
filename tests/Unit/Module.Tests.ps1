@@ -12,7 +12,7 @@ Describe "CodexWoA.Build module" {
 
     It "keeps the build command CLI contract" {
         $parameters = (Get-Command Invoke-CodexWoABuild).Parameters
-        foreach ($name in @("SourceMode", "SourceMsixPath", "OutputDir", "PackageIdentity", "DisplayName", "PackageVersionOverride", "PublisherSubject", "CodexReleaseTag", "InstallVsDependencies", "SkipVsDependencyCheck", "KeepWorkDir", "Force")) {
+        foreach ($name in @("SourceMode", "SourceMsixPath", "OutputDir", "PackageIdentity", "DisplayName", "PackageVersionOverride", "PublisherSubject", "CodexReleaseTag", "NodeGypLtoMode", "InstallVsDependencies", "SkipVsDependencyCheck", "KeepWorkDir", "Force")) {
             $parameters.ContainsKey($name) | Should -BeTrue
         }
     }
