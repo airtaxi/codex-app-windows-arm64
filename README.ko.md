@@ -92,7 +92,7 @@ Build-CodexWoA.bat -SourceMode StoreMsix -Force
 - Electron 런타임을 `win32-arm64`로 교체합니다.
 - 번들된 Node.js를 `win-arm64`로 교체합니다.
 - `better-sqlite3`, `node-pty`, plugin `classic-level` 같은 in-process 네이티브 모듈을 ARM64로 rebuild합니다.
-- 로컬 자체 서명 패키지에서는 native Windows updater를 비활성화합니다.
+- Desktop bootstrap이 로드할 수 있도록 native Windows updater를 ARM64 no-op stub으로 교체하고, 로컬 패키지는 Microsoft Store 업데이트 흐름 밖에 둡니다.
 - upstream ARM64 asset이 있는 helper 실행 파일을 ARM64 버전으로 교체합니다.
 - Codex가 Windows sandbox setup helper를 MSIX 패키지 외부로 복사한 뒤 UAC installer detection이 발생하지 않도록 명시적인 `asInvoker` manifest를 삽입합니다.
 - `app\resources\codex` 및 `app\resources\codex-resources\bwrap`에 ARM64 WSL Codex runtime source를 추가하고 검증합니다.
