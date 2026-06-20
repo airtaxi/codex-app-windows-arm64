@@ -36,8 +36,9 @@ foreach ($entry in $requiredModules.GetEnumerator()) {
 
 Write-Host "Parsing PowerShell files..."
 $parseErrors = New-Object System.Collections.Generic.List[object]
-Get-ChildItem -LiteralPath $repoRoot -Recurse -File -Include "*.ps1", "*.psm1", "*.psd1" |
+Get-ChildItem -LiteralPath $repoRoot -Recurse -File |
     Where-Object {
+        $_.Extension -in @(".ps1", ".psm1", ".psd1") -and
         $_.FullName -notlike "$moduleRoot*" -and
         $_.FullName -notlike "$(Join-Path $repoRoot 'dist')*" -and
         $_.FullName -notlike "$(Join-Path $repoRoot 'build')*"
@@ -46,8 +47,8 @@ Get-ChildItem -LiteralPath $repoRoot -Recurse -File -Include "*.ps1", "*.psm1", 
         $tokens = $null
         $errors = $null
         [Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
-        foreach ($error in $errors) {
-            $parseErrors.Add($error)
+        foreach ($parseError in $errors) {
+            $parseErrors.Add($parseError)
         }
     }
 if ($parseErrors.Count -gt 0) {
