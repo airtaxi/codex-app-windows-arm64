@@ -133,11 +133,34 @@ function Normalize-PercentEncodedScopedPackageDirs {
 
 
 
+function Get-HostOsArchitecture {
+    $runtimeInfoType = [System.Runtime.InteropServices.RuntimeInformation]
+    $osArchitectureProperty = $runtimeInfoType.GetProperty("OSArchitecture")
+    if ($null -ne $osArchitectureProperty) {
+        return $osArchitectureProperty.GetValue($null, $null).ToString()
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:PROCESSOR_ARCHITEW6432)) {
+        return $env:PROCESSOR_ARCHITEW6432
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($env:PROCESSOR_ARCHITECTURE)) {
+        return $env:PROCESSOR_ARCHITECTURE
+    }
+
+    return ""
+}
+
+function Test-IsArm64Host {
+    $architecture = Get-HostOsArchitecture
+    return $architecture -match "^(?i:arm64|aarch64)$"
+}
+
 function Find-WindowsKitTool {
     param([string]$ToolName)
 
     $preferredArches = @("arm64", "x64", "x86")
-    if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() -ne "Arm64") {
+    if (-not (Test-IsArm64Host)) {
         $preferredArches = @("x64", "arm64", "x86")
     }
 
@@ -153,6 +176,13 @@ function Find-WindowsKitTool {
                 if (Test-Path -LiteralPath $candidate) {
                     return $candidate
                 }
+            }
+        }
+
+        foreach ($arch in $preferredArches) {
+            $candidate = Join-Path $kitRoot (Join-Path $arch $ToolName)
+            if (Test-Path -LiteralPath $candidate) {
+                return $candidate
             }
         }
     }
@@ -239,8 +269,6 @@ function Get-RelativePath {
     $pathFull = [System.IO.Path]::GetFullPath($Path)
     return $pathFull.Substring($rootFull.Length + 1).Replace("/", "\")
 }
-
-
 
 
 

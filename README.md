@@ -114,7 +114,7 @@ The certificate is generated locally when needed and is not committed to the rep
 - Replaces the Electron runtime with `win32-arm64`.
 - Replaces bundled Node.js with `win-arm64`.
 - Rebuilds in-process native modules such as `better-sqlite3`, `node-pty`, and plugin `classic-level` for ARM64.
-- Disables the native Windows updater for the locally signed package.
+- Replaces the native Windows updater with an ARM64 no-op stub so the desktop bootstrap can load while local packages stay outside Microsoft Store update flow.
 - Replaces ARM64 helper executables when upstream ARM64 assets are available.
 - Embeds an explicit `asInvoker` manifest in the Windows sandbox setup helper to prevent UAC installer detection after Codex copies the helper outside the MSIX package.
 - Adds and validates an ARM64 WSL Codex runtime source at `app\resources\codex` and `app\resources\codex-resources\bwrap`.

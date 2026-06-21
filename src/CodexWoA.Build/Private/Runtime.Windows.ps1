@@ -257,12 +257,149 @@ function Install-Arm64Ripgrep {
     Add-Replacement "rg.exe" "arm64" $assetName
 }
 
-function Remove-WindowsUpdaterNative {
-    param([string]$ResourcesDir)
+function New-WindowsUpdaterStubSource {
+    param([string]$PackageDir)
+
+    New-Item -ItemType Directory -Path $PackageDir -Force | Out-Null
+    Set-TextUtf8NoBom (Join-Path $PackageDir "package.json") @"
+{
+  "private": true,
+  "name": "codex-woa-windows-updater-stub",
+  "version": "1.0.0",
+  "gypfile": true
+}
+"@
+    Set-TextUtf8NoBom (Join-Path $PackageDir "binding.gyp") @"
+{
+  "targets": [
+    {
+      "target_name": "windows_updater",
+      "sources": [ "windows_updater_stub.cc" ],
+      "defines": [ "NAPI_VERSION=8" ]
+    }
+  ]
+}
+"@
+    Set-TextUtf8NoBom (Join-Path $PackageDir "windows_updater_stub.cc") @"
+#include <node_api.h>
+
+static napi_value MakeBoolean(napi_env env, bool value) {
+  napi_value result;
+  napi_get_boolean(env, value, &result);
+  return result;
+}
+
+static napi_value MakeResolvedBoolean(napi_env env, bool value) {
+  napi_deferred deferred;
+  napi_value promise;
+  napi_create_promise(env, &deferred, &promise);
+  napi_resolve_deferred(env, deferred, MakeBoolean(env, value));
+  return promise;
+}
+
+static napi_value MakeResolvedString(napi_env env, const char* value) {
+  napi_deferred deferred;
+  napi_value promise;
+  napi_value result;
+  napi_create_promise(env, &deferred, &promise);
+  napi_create_string_utf8(env, value, NAPI_AUTO_LENGTH, &result);
+  napi_resolve_deferred(env, deferred, result);
+  return promise;
+}
+
+static napi_value MakeString(napi_env env, const char* value) {
+  napi_value result;
+  napi_create_string_utf8(env, value, NAPI_AUTO_LENGTH, &result);
+  return result;
+}
+
+static napi_value HasUpdate(napi_env env, napi_callback_info info) {
+  return MakeResolvedBoolean(env, false);
+}
+
+static napi_value CanSilentlyDownload(napi_env env, napi_callback_info info) {
+  return MakeBoolean(env, false);
+}
+
+static napi_value TrySilentDownloadStoreUpdates(napi_env env, napi_callback_info info) {
+  return MakeResolvedString(env, "NoUpdates");
+}
+
+static napi_value TrySilentDownloadAndInstallStoreUpdates(napi_env env, napi_callback_info info) {
+  return MakeResolvedString(env, "NoUpdates");
+}
+
+static napi_value GetCurrentPackageFamily(napi_env env, napi_callback_info info) {
+  return MakeString(env, "");
+}
+
+static napi_value StagePackage(napi_env env, napi_callback_info info) {
+  return MakeResolvedBoolean(env, false);
+}
+
+static napi_value ActivateStagedPackage(napi_env env, napi_callback_info info) {
+  return MakeResolvedBoolean(env, false);
+}
+
+static napi_value Init(napi_env env, napi_value exports) {
+  napi_property_descriptor properties[] = {
+      {"hasUpdate", 0, HasUpdate, 0, 0, 0, napi_default, 0},
+      {"canSilentlyDownload", 0, CanSilentlyDownload, 0, 0, 0, napi_default, 0},
+      {"trySilentDownloadStoreUpdates", 0, TrySilentDownloadStoreUpdates, 0, 0, 0, napi_default, 0},
+      {"trySilentDownloadAndInstallStoreUpdates", 0, TrySilentDownloadAndInstallStoreUpdates, 0, 0, 0, napi_default, 0},
+      {"getCurrentPackageFamily", 0, GetCurrentPackageFamily, 0, 0, 0, napi_default, 0},
+      {"stagePackage", 0, StagePackage, 0, 0, 0, napi_default, 0},
+      {"activateStagedPackage", 0, ActivateStagedPackage, 0, 0, 0, napi_default, 0},
+  };
+  napi_define_properties(env, exports, sizeof(properties) / sizeof(properties[0]), properties);
+  return exports;
+}
+
+NAPI_MODULE(NODE_GYP_MODULE_NAME, Init)
+"@
+}
+
+function Install-Arm64WindowsUpdaterStub {
+    param(
+        [string]$ResourcesDir,
+        [string]$ElectronVersion,
+        [string]$WorkDir
+    )
 
     $updaterPath = Join-Path $ResourcesDir "native\windows-updater.node"
-    if (Test-Path -LiteralPath $updaterPath) {
-        Remove-Item -LiteralPath $updaterPath -Force
-        Add-Replacement "windows-updater.node" "removed" "self-signed WoA package disables native updater"
+    if (-not (Test-Path -LiteralPath $updaterPath)) {
+        return
     }
+
+    Write-Step "Replacing Windows updater native module with ARM64 no-op stub"
+    Require-CommandPath "pnpm" | Out-Null
+
+    $stubDir = New-CleanDirectory (Join-Path $WorkDir "windows-updater-stub")
+    New-WindowsUpdaterStubSource $stubDir
+
+    Push-Location $stubDir
+    try {
+        Invoke-Checked "pnpm" @(
+            "dlx",
+            "node-gyp@$($script:Context.Tools.NodeGyp)",
+            "rebuild",
+            "--arch=arm64",
+            "--target=$ElectronVersion",
+            "--dist-url=https://electronjs.org/headers"
+        )
+    }
+    finally {
+        Pop-Location
+    }
+
+    $builtNode = Join-Path $stubDir "build\Release\windows_updater.node"
+    if (-not (Test-Path -LiteralPath $builtNode)) {
+        throw "Windows updater ARM64 stub build output was not found: $builtNode"
+    }
+    if ((Get-PeMachine $builtNode) -ne "arm64") {
+        throw "Windows updater stub build did not produce an ARM64 binary: $builtNode"
+    }
+
+    Copy-Item -LiteralPath $builtNode -Destination $updaterPath -Force
+    Add-Replacement "windows-updater.node" "stub-arm64" "local package disables Microsoft Store updater"
 }

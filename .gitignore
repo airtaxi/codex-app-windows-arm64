@@ -8,3 +8,4 @@ build/
 *.appx
 *.msixbundle
 *.appxbundle
+dist-*/

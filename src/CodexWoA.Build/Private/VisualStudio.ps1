@@ -221,7 +221,6 @@ function Install-VisualStudioComponents {
     }
     $arguments.Add("--quiet") | Out-Null
     $arguments.Add("--norestart") | Out-Null
-    $arguments.Add("--wait") | Out-Null
 
     $exitCode = Invoke-Checked $setup ([string[]]$arguments) @(0, 3010)
     if ($exitCode -eq 3010) {
@@ -238,7 +237,10 @@ function Ensure-VisualStudioArm64Tools {
     Write-Step "Checking Visual Studio ARM64 C++ toolchain"
     $vsInfo = Find-VisualStudioCppInstance
     if ($null -eq $vsInfo) {
-        throw "Visual Studio C++ toolchain was not found. Install Visual Studio C++ desktop build tools with ARM64 support."
+        throw (Get-VisualStudioDependencyGuidance $null @(
+            "Microsoft.VisualStudio.Workload.VCTools",
+            "Microsoft.VisualStudio.Component.VC.Tools.ARM64"
+        ))
     }
 
     $arm64ToolComponents = @(Get-Arm64CppComponentIds $vsInfo.installationPath $vsInfo.toolsetVersion)
